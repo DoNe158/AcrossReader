@@ -3,4 +3,3 @@
 and converts it into a csv file that is separated by "§". Tags inside the source text and translation are removed or replaced. Every entry contains of
 the segment id, the source text and the corresponding translation. 100% Fuzzy matches (duplicates) are removed, only the first occurrence is displayed and
 stored in the csv file.</p>
-<p>This code can be exported in order to be runned on the desktop. A simple window to choose the path of the htm file will appear.</p>
