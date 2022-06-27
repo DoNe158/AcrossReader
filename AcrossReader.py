@@ -26,17 +26,16 @@ class AcrossReader:
 
             for entry in lines:
                 if entry.startswith("<DIV id=contents"):
-                    tmp = re.sub("<DIV id=contents.*?<SPAN class=atom>", "", entry)
+                    tmp = entry
 
                     if counter == 2:
-                        source = re.sub("</SPAN></PRE></DIV></TD>", "", tmp)[:-1]
+                        source = tmp[:-1]
                         source = cls.__remove_nbsp_tag__(source)
                         source = cls.__remove_tags_inline(source)
                         counter += 1
 
                     elif counter == 3:
-                        translation = re.sub("</SPAN></PRE></DIV></TD>", "", tmp)
-                        translation = re.sub("</TR>", "", translation)
+                        translation = tmp
                         translation = cls.__remove_nbsp_tag__(translation)
                         translation = cls.__remove_tags_inline(translation)
                         counter = 1
@@ -66,7 +65,7 @@ class AcrossReader:
 
         list_without_duplicates = list()
         translation_entry = ''
-        list_without_duplicates.append(AcrossReader("ID", "Ausgangstext", "Übersetzung\n"))
+        list_without_duplicates.append(AcrossReader("ID", "Source text", "translation\n"))
 
         for entry in translation_list:
             exists = False
@@ -91,29 +90,35 @@ class AcrossReader:
         :param line: one segment holding the source text or the translation.
         :return: line without any specific tags.
         """
-
-        line_cleaned = re.sub("<WBR><IMG.*?<SPAN class=atom>", "<TAG>", line)
+        line_cleaned = re.sub("<WBR>", "", line)
+        line_cleaned = re.sub("<TR.*?>", "", line_cleaned)
+        line_cleaned = re.sub("<TD.*?>", "", line_cleaned)
+        line_cleaned = re.sub("<DIV.*?>", "", line_cleaned)
+        line_cleaned = re.sub("<PRE.*?>", "", line_cleaned)
+        line_cleaned = re.sub("<SPAN.*?>", "", line_cleaned)
         line_cleaned = re.sub("</SPAN>", "", line_cleaned)
-        line_cleaned = re.sub("<WBR>", "", line_cleaned)
         line_cleaned = re.sub("</PRE>", "", line_cleaned)
         line_cleaned = re.sub("</DIV>", "", line_cleaned)
         line_cleaned = re.sub("</TD>", "", line_cleaned)
-        line_cleaned = re.sub('<IMG id.*?png">', "", line_cleaned)
-        line_cleaned = re.sub('&nbsp;', " ", line_cleaned)
+        line_cleaned = re.sub("</TR>", "", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?">', "", line_cleaned)
 
         return line_cleaned
 
     @classmethod
     def __remove_nbsp_tag__(cls, translation_string):
         """
-        Removes nbsp tags within the translation.
+        Removes whitespace tags within the translation.
 
         :param translation_string: one segment holding the source text or the translation.
-        :return: segment without any nbsp tags
+        :return: segment without any whitespace tags
         """
 
         if 'class=field alt=&amp;nbsp; src=' in translation_string:
             tmp = re.sub('</SPAN>.*?<SPAN class=atom>', ' ', translation_string)
+            return tmp
+        elif '&nbsp;' in translation_string:
+            tmp = re.sub('&nbsp;', '', translation_string)
             return tmp
         else:
             return translation_string
