@@ -101,7 +101,20 @@ class AcrossReader:
         line_cleaned = re.sub("</DIV>", "", line_cleaned)
         line_cleaned = re.sub("</TD>", "", line_cleaned)
         line_cleaned = re.sub("</TR>", "", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?">', "", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="<Schaltflaeche>".*?">', "<Button>", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="</Schaltflaeche>".*?">', "</Button>", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="<Taste>".*?">', "<Taste>", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="</Taste>".*?">', "</Taste>", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="<Menue>".*?">', "<Menue>", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="</Menue>".*?">', "</Menue>", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="<Hervorhebung>".*?">', "", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="</Hervorhebung>".*?">', "", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt="<Zeilenwechsel />".*?">', "<br />", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?alt = "<Pfad>.*?</Pfad>.*?">', "<Pfad>", line_cleaned)
+        line_cleaned = re.sub('<IMG.*?png">', "", line_cleaned)
+
+
+        # line_cleaned = re.sub('<IMG.*?>', '', line_cleaned)
 
         return line_cleaned
 
