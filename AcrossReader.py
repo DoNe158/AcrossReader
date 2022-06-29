@@ -32,12 +32,14 @@ class AcrossReader:
                         source = tmp[:-1]
                         source = cls.__remove_nbsp_tag__(source)
                         source = cls.__remove_tags_inline(source)
+                        source = cls.__replace_special_characters__(source)
                         counter += 1
 
                     elif counter == 3:
                         translation = tmp
                         translation = cls.__remove_nbsp_tag__(translation)
                         translation = cls.__remove_tags_inline(translation)
+                        translation = cls.__replace_special_characters__(translation)
                         counter = 1
                         translation_entry = AcrossReader(segment_id, source, translation)
                         translations.append(translation_entry)
@@ -85,11 +87,13 @@ class AcrossReader:
     @classmethod
     def __remove_tags_inline(cls, line):
         """
-        Removes tags that occur within the text and removes them or replaces them with <TAG>.
+        Removes tags that occur within the text and removes them or replaces them with responding tags,
+        such as <Button>, <Taste>, etc.
 
         :param line: one segment holding the source text or the translation.
-        :return: line without any specific tags.
+        :return: line that only shows <Button>, <Taste>, <Menue> and <Hervorhebung> tag. All other tags are removed.
         """
+
         line_cleaned = re.sub("<WBR>", "", line)
         line_cleaned = re.sub("<TR.*?>", "", line_cleaned)
         line_cleaned = re.sub("<TD.*?>", "", line_cleaned)
@@ -101,22 +105,46 @@ class AcrossReader:
         line_cleaned = re.sub("</DIV>", "", line_cleaned)
         line_cleaned = re.sub("</TD>", "", line_cleaned)
         line_cleaned = re.sub("</TR>", "", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?alt="<Schaltflaeche>".*?">', "<Button>", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?alt="</Schaltflaeche>".*?">', "</Button>", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?alt="<Taste>".*?">', "<Taste>", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?alt="</Taste>".*?">', "</Taste>", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?alt="<Menue>".*?">', "<Menue>", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?alt="</Menue>".*?">', "</Menue>", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?alt="<Hervorhebung>".*?">', "", line_cleaned)
-        line_cleaned = re.sub('<IMG.*?alt="</Hervorhebung>".*?">', "", line_cleaned)
+
+        button_counter = line_cleaned.count("<Schaltflaeche>")
+        for occurrence in range(0, button_counter):
+            line_cleaned = re.sub('<IMG.*?alt="<Schaltflaeche>".*?.png">', "<Button>", line_cleaned, 1)
+            line_cleaned = re.sub('<IMG.*?alt="</Schaltflaeche>".*?.png">', "</Button>", line_cleaned, 1)
+
+        button_counter_2 = line_cleaned.count("<Taste>")
+        for occurrence in range(0, button_counter_2):
+            line_cleaned = re.sub('<IMG.*?alt="<Taste>".*?">', "<Taste>", line_cleaned, 1)
+            line_cleaned = re.sub('<IMG.*?alt="</Taste>".*?">', "</Taste>", line_cleaned, 1)
+
+        menue_counter = line_cleaned.count("<Menue>")
+        for occurrence in range(0, menue_counter):
+            line_cleaned = re.sub('<IMG.*?alt="<Menue>".*?">', "<Menue>", line_cleaned, 1)
+            line_cleaned = re.sub('<IMG.*?alt="</Menue>".*?">', "</Menue>", line_cleaned, 1)
+
+        highlight_counter = line_cleaned.count("<Hervorhebung>")
+        for occurrence in range(0, highlight_counter):
+            line_cleaned = re.sub('<IMG.*?alt="<Hervorhebung>".*?">', "", line_cleaned, 1)
+            line_cleaned = re.sub('<IMG.*?alt="</Hervorhebung>".*?">', "", line_cleaned, 1)
+
         line_cleaned = re.sub('<IMG.*?alt="<Zeilenwechsel />".*?">', "<br />", line_cleaned)
         line_cleaned = re.sub('<IMG.*?alt = "<Pfad>.*?</Pfad>.*?">', "<Pfad>", line_cleaned)
         line_cleaned = re.sub('<IMG.*?png">', "", line_cleaned)
 
-
-        # line_cleaned = re.sub('<IMG.*?>', '', line_cleaned)
-
         return line_cleaned
+
+    @classmethod
+    def __replace_special_characters__(cls, translation_string):
+        """
+        Replaces "&lt;" and "&gt;" with their encoded symbols.
+
+        :param translation_string: one segment holding the source text or the translation.
+        :return: string that replaced "&lt;" and "&gt;" with "<" and ">".
+        """
+
+        tmp = re.sub("&lt;", "<", translation_string)
+        tmp = re.sub("&gt;", ">", tmp)
+
+        return tmp
 
     @classmethod
     def __remove_nbsp_tag__(cls, translation_string):
