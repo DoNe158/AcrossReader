@@ -1,5 +1,10 @@
 import os
 import re
+import sys
+from docx import Document
+from docx.shared import Inches
+from docx.shared import Pt
+import AcrossValidation
 
 
 class AcrossReader:
@@ -16,43 +21,116 @@ class AcrossReader:
         the segment id, the source text, and the translated text. "§" is used as a separator.
         """
 
-        file_to_store = cls.__generate_destination_file__(htm_file)
+        # Validation
+        across_validator = AcrossValidation.AcrossValidation
 
-        with open(htm_file, "r", encoding="utf-8") as file_to_be_read:
-            lines = file_to_be_read.readlines()
-            counter = 1
-            translations = list()
-            source = ''
+        try:
+            across_validator.check_file_ending(htm_file)
+            across_validator.check_across_htm_file(htm_file)
 
-            for entry in lines:
-                if entry.startswith("<DIV id=contents"):
-                    tmp = entry
+            file_to_store = cls.__generate_destination_file__(htm_file)
 
-                    if counter == 2:
-                        source = tmp[:-1]
-                        source = cls.__remove_nbsp_tag__(source)
-                        source = cls.__remove_tags_inline(source)
-                        source = cls.__replace_special_characters__(source)
+            with open(htm_file, "r", encoding="utf-8") as file_to_be_read:
+                lines = file_to_be_read.readlines()
+                counter = 1
+                translations = list()
+                source = ''
+
+                for entry in lines:
+                    if entry.startswith("<DIV id=contents"):
+                        tmp = entry
+
+                        if counter == 2:
+                            source = tmp[:-1]
+                            source = cls.__remove_nbsp_tag__(source)
+                            source = cls.__remove_tags_inline(source)
+                            source = cls.__replace_special_characters__(source)
+                            counter += 1
+
+                        elif counter == 3:
+                            translation = tmp
+                            translation = cls.__remove_nbsp_tag__(translation)
+                            translation = cls.__remove_tags_inline(translation)
+                            translation = cls.__replace_special_characters__(translation)
+                            counter = 1
+                            translation_entry = AcrossReader(segment_id, source, translation)
+                            translations.append(translation_entry)
+
+                    if 'inactiveNumbering" width=' in entry and counter == 1:
+                        segment_id = re.sub('<TD.*?MARGIN: 2px 0px 0px"><SPAN class=atom>', "", entry)
+                        segment_id = re.sub("</SPAN></PRE></TD>", "", segment_id)[:-1]
                         counter += 1
 
-                    elif counter == 3:
-                        translation = tmp
-                        translation = cls.__remove_nbsp_tag__(translation)
-                        translation = cls.__remove_tags_inline(translation)
-                        translation = cls.__replace_special_characters__(translation)
-                        counter = 1
-                        translation_entry = AcrossReader(segment_id, source, translation)
-                        translations.append(translation_entry)
+                all_translations_to_store = cls.__remove_duplicates__(translations)
 
-                if 'inactiveNumbering" width=' in entry and counter == 1:
-                    segment_id = re.sub('<TD.*?MARGIN: 2px 0px 0px"><SPAN class=atom>', "", entry)
-                    segment_id = re.sub("</SPAN></PRE></TD>", "", segment_id)[:-1]
-                    counter += 1
+                cls.__write_file_to_docx__(all_translations_to_store, file_to_store)
 
-            all_translations_to_store = cls.__remove_duplicates__(translations)
+        except FileExistsError as error:
+            sys.exit(str(error))
+        except BaseException as error:
+            sys.exit((str(error)))
 
-            with open(file_to_store, "w", encoding="utf-8") as file:
-                file.write(all_translations_to_store)
+    @staticmethod
+    def __set_col_widths__(table):
+        """
+        Helper method that sets the column width of a table of a docx file.
+        :param table: table where the column width needs to be set.
+        """
+
+        widths = (Inches(0.5), Inches(3), Inches(3))
+        for row in table.rows:
+            for idx, width in enumerate(widths):
+                row.cells[idx].width = width
+
+    @classmethod
+    def __write_file_to_docx__(cls, translation_list_with_AcrossReader, document_name):
+        """
+        Takes a list containing elements of AcrossReader that contains of a segment id, a source text and a translation.
+        Writes each entry of the given list in a table and saves the file as a docx document.
+
+        :param translation_list_with_AcrossReader: list containing elements of AcrossReader
+        :param document_name: name of the destination file
+        """
+
+        document = Document()
+
+        # General Styling
+        style = document.styles['Normal']
+        font = style.font
+        font.name = 'Browallia New'
+        font.size = Pt(12)
+
+        # Document title
+        document.add_heading('Datei für zweisprachige Überprüfung')
+
+        # Document content
+        translation_tuples = list()
+        for translation in translation_list_with_AcrossReader:
+            translation_tuple = (translation.id, translation.source, translation.translation)
+            translation_tuples.append(translation_tuple)
+
+        table = document.add_table(rows=1, cols=3, style="Table Grid")
+        table.allow_autofit = False
+        hdr_cells = table.rows[0].cells
+
+        # Table header and layout
+        header_list = list()
+        header_list.append(hdr_cells[0].paragraphs[0].add_run('ID'))
+        header_list.append(hdr_cells[1].paragraphs[0].add_run('Ausgangstext'))
+        header_list.append(hdr_cells[2].paragraphs[0].add_run('Übersetzung'))
+
+        for header in header_list:
+            header.bold = True
+
+        # Table content
+        for segment_id, source, translation in translation_tuples:
+            row_cells = table.add_row().cells
+            row_cells[0].text = str(segment_id)
+            row_cells[1].text = source
+            row_cells[2].text = translation
+
+        AcrossReader.__set_col_widths__(table)
+        document.save(document_name)
 
     @classmethod
     def __remove_duplicates__(cls, translation_list):
@@ -66,7 +144,6 @@ class AcrossReader:
         """
 
         list_without_duplicates = list()
-        translation_entry = ''
         list_without_duplicates.append(AcrossReader("ID", "Source text", "translation\n"))
 
         for entry in translation_list:
@@ -79,10 +156,7 @@ class AcrossReader:
             if exists is False:
                 list_without_duplicates.append(entry)
 
-        for entry in list_without_duplicates:
-            translation_entry += entry.id + "§" + entry.source + "§" + entry.translation
-
-        return translation_entry
+        return list_without_duplicates
 
     @classmethod
     def __remove_tags_inline(cls, line):
@@ -177,7 +251,7 @@ class AcrossReader:
         directory_name = os.path.dirname(path) + "/"
         file_name = os.path.basename(path)
         file_name = file_name.split('.')[0]
-        file_name_translation = file_name + "_translated.txt"
+        file_name_translation = file_name + ".docx"
         path_translation = directory_name + file_name_translation
 
         return path_translation
