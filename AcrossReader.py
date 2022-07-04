@@ -2,7 +2,7 @@ import os
 import re
 import sys
 from docx import Document
-from docx.shared import Inches
+from docx.shared import Cm
 from docx.shared import Pt
 import AcrossValidation
 
@@ -77,7 +77,7 @@ class AcrossReader:
         :param table: table where the column width needs to be set.
         """
 
-        widths = (Inches(0.5), Inches(3), Inches(3))
+        widths = (Cm(1.3), Cm(7), Cm(7))
         for row in table.rows:
             for idx, width in enumerate(widths):
                 row.cells[idx].width = width
@@ -110,7 +110,7 @@ class AcrossReader:
             translation_tuples.append(translation_tuple)
 
         table = document.add_table(rows=1, cols=3, style="Table Grid")
-        table.allow_autofit = False
+        table.autofit = False
         hdr_cells = table.rows[0].cells
 
         # Table header and layout
@@ -144,7 +144,7 @@ class AcrossReader:
         """
 
         list_without_duplicates = list()
-        list_without_duplicates.append(AcrossReader("ID", "Source text", "translation\n"))
+        # list_without_duplicates.append(AcrossReader("ID", "Source text", "translation\n"))
 
         for entry in translation_list:
             exists = False
