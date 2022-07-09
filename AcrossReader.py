@@ -1,12 +1,11 @@
 import os
 import re
-import sys
 import json
+import AcrossValidation
 
 from docx import Document
 from docx.shared import Cm
 from docx.shared import Pt
-import AcrossValidation
 
 
 class AcrossReader:
@@ -24,11 +23,20 @@ class AcrossReader:
         """
 
         # Validation
-        across_validator = AcrossValidation.AcrossValidation
+        across_validator = AcrossValidation.AcrossValidation()
 
         try:
+            # Validation
+            across_validator.validate_file_existence(htm_file)
+            across_validator.validate_file_existence(tag_file)
             across_validator.check_file_ending(htm_file)
             across_validator.check_across_htm_file(htm_file)
+            across_validator.check_tag_file(tag_file)
+
+            all_tags = cls.__transform_json_to_dict__(tag_file)
+
+            if not across_validator.validate_json_schema(all_tags):
+                return False
 
             file_to_store = cls.__generate_destination_file__(htm_file)
 
@@ -38,103 +46,38 @@ class AcrossReader:
                 translations = list()
                 source = ''
 
-                for entry in lines:
-                    if entry.startswith("<DIV id=contents"):
-                        tmp = entry
+            for entry in lines:
+                if entry.startswith("<DIV id=contents"):
+                    tmp = entry
 
-                        if counter == 2:
-                            source = tmp[:-1]
-                            source = cls.__remove_nbsp_tag__(source)
-                            source = cls.__remove_tags_inline(source, tag_file)
-                            source = cls.__replace_special_characters__(source)
-                            counter += 1
-
-                        elif counter == 3:
-                            translation = tmp
-                            translation = cls.__remove_nbsp_tag__(translation)
-                            translation = cls.__remove_tags_inline(translation, tag_file)
-                            translation = cls.__replace_special_characters__(translation)
-                            counter = 1
-                            translation_entry = AcrossReader(segment_id, source, translation)
-                            translations.append(translation_entry)
-
-                    if 'inactiveNumbering" width=' in entry and counter == 1:
-                        segment_id = re.sub('<TD.*?MARGIN: 2px 0px 0px"><SPAN class=atom>', "", entry)
-                        segment_id = re.sub("</SPAN></PRE></TD>", "", segment_id)[:-1]
+                    if counter == 2:
+                        source = tmp[:-1]
+                        source = cls.__remove_nbsp_tag__(source)
+                        source = cls.__remove_tags_inline(source, all_tags)
+                        source = cls.__replace_special_characters__(source)
                         counter += 1
 
-                all_translations_to_store = cls.__remove_duplicates__(translations)
+                    elif counter == 3:
+                        translation = tmp
+                        translation = cls.__remove_nbsp_tag__(translation)
+                        translation = cls.__remove_tags_inline(translation, all_tags)
+                        translation = cls.__replace_special_characters__(translation)
+                        counter = 1
+                        translation_entry = AcrossReader(segment_id, source, translation)
+                        translations.append(translation_entry)
 
-                cls.__write_file_to_docx__(all_translations_to_store, file_to_store)
+                if 'inactiveNumbering" width=' in entry and counter == 1:
+                    segment_id = re.sub('<TD.*?MARGIN: 2px 0px 0px"><SPAN class=atom>', "", entry)
+                    segment_id = re.sub("</SPAN></PRE></TD>", "", segment_id)[:-1]
+                    counter += 1
 
-        except FileExistsError as error:
-            sys.exit(str(error))
+            all_translations_to_store = cls.__remove_duplicates__(translations)
 
-        except BaseException as error:
-            sys.exit((str(error)))
+            cls.__write_file_to_docx__(all_translations_to_store, file_to_store)
+            return True
 
-
-    @staticmethod
-    def __set_col_widths__(table):
-        """
-        Helper method that sets the column width of a table of a docx file.
-        :param table: table where the column width needs to be set.
-        """
-
-        widths = (Cm(1.3), Cm(7), Cm(7))
-        for row in table.rows:
-            for idx, width in enumerate(widths):
-                row.cells[idx].width = width
-
-    @classmethod
-    def __write_file_to_docx__(cls, translation_list_with_AcrossReader, document_name):
-        """
-        Takes a list containing elements of AcrossReader that contains of a segment id, a source text and a translation.
-        Writes each entry of the given list in a table and saves the file as a docx document.
-
-        :param translation_list_with_AcrossReader: list containing elements of AcrossReader
-        :param document_name: name of the destination file
-        """
-
-        document = Document()
-
-        # General Styling
-        style = document.styles['Normal']
-        font = style.font
-        font.name = 'Browallia New'
-        font.size = Pt(12)
-
-        # Document title
-        document.add_heading('Datei für zweisprachige Überprüfung')
-
-        # Document content
-        translation_tuples = list()
-        for translation in translation_list_with_AcrossReader:
-            translation_tuple = (translation.id, translation.source, translation.translation)
-            translation_tuples.append(translation_tuple)
-
-        table = document.add_table(rows=1, cols=3, style="Table Grid")
-        table.autofit = False
-        hdr_cells = table.rows[0].cells
-
-        # Table header and layout
-        header_list = list()
-        header_list.append(hdr_cells[0].paragraphs[0].add_run('ID'))
-        header_list.append(hdr_cells[1].paragraphs[0].add_run('Ausgangstext'))
-        header_list.append(hdr_cells[2].paragraphs[0].add_run('Übersetzung'))
-
-        for header in header_list:
-            header.bold = True
-
-        # Table content
-        for segment_id, source, translation in translation_tuples:
-            row_cells = table.add_row().cells
-            row_cells[0].text = str(segment_id)
-            row_cells[1].text = source
-            row_cells[2].text = translation
-
-        AcrossReader.__set_col_widths__(table)
-        document.save(document_name)
+        except (OSError, FileExistsError, ValueError) as error:
+            raise ValueError(error)
 
     @classmethod
     def __remove_duplicates__(cls, translation_list):
@@ -162,7 +105,7 @@ class AcrossReader:
         return list_without_duplicates
 
     @classmethod
-    def __remove_tags_inline(cls, line, tag_file):
+    def __remove_tags_inline(cls, line, tag_dict):
         """
         Removes tags that occur within the text and removes them or replaces them with responding tags that are
         defined in a json file.
@@ -184,10 +127,6 @@ class AcrossReader:
         line_cleaned = re.sub("</TD>", "", line_cleaned)
         line_cleaned = re.sub("</TR>", "", line_cleaned)
 
-        # customer specific tags of each project
-        with open(tag_file, 'r', encoding="utf-8") as file:
-            tag_dict = json.load(file)
-
         for tag in tag_dict.get('data'):
             line_cleaned = cls.__replace_tag__(line_cleaned, tag.get('name'), tag.get('show_tag'), tag.get('opening'), tag.get('closing'))
 
@@ -206,8 +145,7 @@ class AcrossReader:
         :return: Success / Failure messages.
         """
 
-        with open(tag_file, 'r', encoding='utf-8') as read_file:
-            data = json.load(read_file)
+        data = cls.__transform_json_to_dict__(tag_file)
 
         for entry in data.__getitem__('data'):
             if entry.get('name') == tag_list[0].get():
@@ -249,8 +187,7 @@ class AcrossReader:
         """
 
         tag_list = list()
-        with open(tag_file, 'r', encoding="utf-8") as file:
-            tag_dict = json.load(file)
+        tag_dict = AcrossReader.__transform_json_to_dict__(tag_file)
 
         for tag in tag_dict.get('data'):
             if tag.get('closing') == "":
@@ -349,25 +286,34 @@ class AcrossReader:
         :return: Success / Failure message.
         """
 
-        with open(tag_file, 'r', encoding='utf-8') as read_file:
-            data = json.load(read_file)
+        across_validator = AcrossValidation.AcrossValidation()
 
-        new_dict = {'data': []}
-        exists = False
+        try:
+            across_validator.check_empty_string(tag_to_be_deleted.get())
 
-        for entry in data.__getitem__('data'):
-            if entry.get('name') != tag_to_be_deleted.get():
-                new_dict.__getitem__('data').append(entry)
+            data = cls.__transform_json_to_dict__(tag_file)
+
+            new_dict = {'data': []}
+            exists = False
+
+            for entry in data.__getitem__('data'):
+                if entry.get('name') != tag_to_be_deleted.get():
+                    new_dict.__getitem__('data').append(entry)
+                else:
+                    exists = True
+
+            if exists is True:
+                with open(tag_file, 'w', encoding='utf-8') as file:
+                    json.dump(new_dict, file)
+                return ["Tag erfolgreich gelöscht",
+                        "Der von Ihnen gewählte Tag wurde erfolgreich aus der angegebenen Datei gelöscht."]
+
             else:
-                exists = True
+                return ["Tag nicht vorhanden",
+                        "Der von Ihnen gewählte Tag konnte nicht gelöscht werden, da ein solcher Tag nicht in der angegebenen Datei existiert."]
 
-        if exists is True:
-            with open(tag_file, 'w', encoding='utf-8') as file:
-                json.dump(new_dict, file)
-            return ["Tag erfolgreich gelöscht", "Der von Ihnen gewählte Tag wurde erfolgreich aus der angegebenen Datei gelöscht."]
-
-        else:
-            return ["Tag nicht vorhanden", "Der von Ihnen gewählte Tag konnte nicht gelöscht werden, da ein solcher Tag nicht in der angegebenen Datei existiert."]
+        except ValueError as error:
+            return ["Achtung", str(error)]
 
     @classmethod
     def __generate_destination_file__(cls, path):
@@ -386,3 +332,78 @@ class AcrossReader:
         path_translation = directory_name + file_name_translation
 
         return path_translation
+
+    @staticmethod
+    def __transform_json_to_dict__(json_file):
+        """
+        Reads a json file and returns the content in a dictionary.
+
+        :param json_file: json file that is to be stored as a dictionary.
+        :return: content of the json file in a dictionary.
+        """
+
+        with open(json_file, "r", encoding="utf-8") as file:
+            data = json.load(file)
+        return data
+
+    @staticmethod
+    def __set_col_widths__(table):
+        """
+        Helper method that sets the column width of a table of a docx file.
+        :param table: table where the column width needs to be set.
+        """
+
+        widths = (Cm(1.3), Cm(7), Cm(7))
+        for row in table.rows:
+            for idx, width in enumerate(widths):
+                row.cells[idx].width = width
+
+    @classmethod
+    def __write_file_to_docx__(cls, translation_list_with_AcrossReader, document_name):
+        """
+        Takes a list containing elements of AcrossReader that contains of a segment id, a source text and a translation.
+        Writes each entry of the given list in a table and saves the file as a docx document.
+
+        :param translation_list_with_AcrossReader: list containing elements of AcrossReader
+        :param document_name: name of the destination file
+        """
+
+        document = Document()
+
+        # General Styling
+        style = document.styles['Normal']
+        font = style.font
+        font.name = 'Browallia New'
+        font.size = Pt(12)
+
+        # Document title
+        document.add_heading('Datei für zweisprachige Überprüfung')
+
+        # Document content
+        translation_tuples = list()
+        for translation in translation_list_with_AcrossReader:
+            translation_tuple = (translation.id, translation.source, translation.translation)
+            translation_tuples.append(translation_tuple)
+
+        table = document.add_table(rows=1, cols=3, style="Table Grid")
+        table.autofit = False
+        hdr_cells = table.rows[0].cells
+
+        # Table header and layout
+        header_list = list()
+        header_list.append(hdr_cells[0].paragraphs[0].add_run('ID'))
+        header_list.append(hdr_cells[1].paragraphs[0].add_run('Ausgangstext'))
+        header_list.append(hdr_cells[2].paragraphs[0].add_run('Übersetzung'))
+
+        for header in header_list:
+            header.bold = True
+
+        # Table content
+        for segment_id, source, translation in translation_tuples:
+            row_cells = table.add_row().cells
+            row_cells[0].text = str(segment_id)
+            row_cells[1].text = source
+            row_cells[2].text = translation
+
+        AcrossReader.__set_col_widths__(table)
+        document.save(document_name)
