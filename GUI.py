@@ -1,9 +1,10 @@
-import os
+import json
 import re
-import tkinter as tk
-from tkinter import filedialog, ttk, RIGHT, Y, END, LEFT, BOTH
-from tkinter.messagebox import showinfo
 import AcrossReader
+import AcrossValidation
+import tkinter as tk
+from tkinter import filedialog, RIGHT, Y, END, LEFT, BOTH
+from tkinter.messagebox import showinfo
 
 
 class GUI:
@@ -23,7 +24,7 @@ class GUI:
             anchor="center", pady=10)
         button_1 = tk.Button(root, text="Lesen einer htm-Datei", width="25", command=cls.__read_htm__).pack(
             anchor="center", pady=5)
-        button_2 = tk.Button(root, text="Neuen Tag anlegen", width="25", command=lambda: cls.__ask_for_file__()).pack(
+        button_2 = tk.Button(root, text="Tag-Liste bearbeiten", width="25", command=lambda: cls.__ask_for_file__()).pack(
             anchor="center", pady=5)
         button_3 = tk.Button(root, text="Neue Tag-Liste anlegen", width="25", command=cls.__create_new_tag_file__).pack(
             anchor="center", pady=5)
@@ -34,28 +35,37 @@ class GUI:
     @classmethod
     def __read_htm__(cls):
         """
-        Reads a htm file that is choosen within the window that will open.
+        Reads a htm file that is chosen within the window that will open.
         """
 
-        tk.messagebox.showinfo("Datei wählen", "Wählen Sie bitte die Datei im htm-Format aus, welche Sie in das "
-                                               "csv-Format übertragen möchten.")
+        across_validator = AcrossValidation.AcrossValidation()
+
+        tk.messagebox.showinfo("Datei wählen", "Wählen Sie bitte die Datei im htm-Format aus, welche Sie in eine "
+                                               "docx-Datei übertragen möchten.")
         htm_file = filedialog.askopenfilename()
 
-        if not htm_file:
+        try:
+            across_validator.validate_file_existence(htm_file)
+            tk.messagebox.showinfo("Datei wählen", "Wählen Sie bitte eine Datei im json-Format aus, welche die text-"
+                                                   "spezifischen Tags enthält. Möchten Sie ohne Tag-Ersetzung fortfahren, "
+                                                   "wählen Sie bitte eine leere Tag-Datei. Diese können Sie über 'Neue Tag-Liste anlegen' "
+                                                   "erstellen.")
+            tag_file = filedialog.askopenfilename()
+            across_validator.validate_file_existence(tag_file)
+
+            try:
+                AcrossReader.AcrossReader.read_htm_file(htm_file, tag_file)
+
+                tk.messagebox.showinfo("Erfolgreich übertragen",
+                                       "Die Datei wurde erfolgreich in eine docx-Datei übertragen. Die"
+                                       " Datei befindet sich im Ausgangsordner.")
+
+            except ValueError as error:
+                tk.messagebox.showerror("Fehler", str(error))
+
+        except OSError:
+            tk.messagebox.showerror("Fehler", "Sie haben nicht alle notwendigen Dateien ausgewählt!")
             return
-
-        tk.messagebox.showinfo("Datei wählen", "Wählen Sie bitte eine Datei im json-Format aus, welche die text-"
-                                               "spezifischen Tags enthält.")
-        tag_file = filedialog.askopenfilename()
-
-        AcrossReader.AcrossReader.read_htm_file(htm_file, tag_file)
-
-        file_name = os.path.basename(htm_file)[:-4] + "_translated"
-
-        tk.messagebox.showinfo("Erfolgreich übertragen",
-                               "Die Datei wurde erfolgreich in das csv-Format übertragen. Die"
-                               " Datei befindet sich im Ausgangsordner und trägt den Namen: "
-                               + file_name + ".")
 
     @classmethod
     def __ask_for_file__(cls):
@@ -63,10 +73,26 @@ class GUI:
         Asks for a json file that contains tags.
         """
 
-        tk.messagebox.showinfo("Datei wählen",
-                               "Wählen Sie bitte die Datei aus, welche projektspezifische Tags enthält.")
-        tag_file = filedialog.askopenfilename()
-        cls.__open_file__(tag_file)
+        across_validator = AcrossValidation.AcrossValidation()
+
+        try:
+            tk.messagebox.showinfo("Datei wählen",
+                                   "Wählen Sie bitte die Datei aus, welche projektspezifische Tags enthält.")
+            tag_file = filedialog.askopenfilename()
+
+            # Validation of the tag file
+            across_validator.validate_file_existence(tag_file)
+            across_validator.check_tag_file(tag_file)
+
+            with open(tag_file, "r", encoding="utf-8") as file:
+                all_tags = json.load(file)
+            if not across_validator.validate_json_schema(all_tags):
+                return False
+
+            cls.__open_file__(tag_file)
+
+        except (OSError, ValueError) as error:
+            tk.messagebox.showerror("Fehler", str(error))
 
     @classmethod
     def __create_new_tag_file__(cls):
@@ -101,14 +127,13 @@ class GUI:
         :param tag_file: json file that contains at least an empty dictionary.
         """
 
-
         window = tk.Toplevel()
         window.grab_set()
         cls.__set_center__(window)
 
         label_1 = tk.Label(window, text="Aktuelle Tags in der Datei", font=('Arial', 20)).pack(anchor="w", padx=(10, 0))
 
-        # Frame, der das Textfeld beinhaltet inkl. Scrollbar
+        # frame that contains the scrollbar
         frame = tk.Frame(window)
         scrollbar = tk.Scrollbar(frame)
         scrollbar.pack(side=RIGHT, fill=Y)
@@ -130,7 +155,7 @@ class GUI:
             "und bestätigen Sie mit 'Löschen'."), wraplength=450, justify="left").pack(anchor="w", pady=5, padx=(5, 40))
 
         label_entry_1 = tk.StringVar()
-        label_entry_1.set("Name des Tags")
+        label_entry_1.set("Name des Tags (*Pflichtfeld)")
         label_dir = tk.Label(window, textvariable=label_entry_1, font='Arial 10 bold')
         label_dir.pack(anchor="w", padx=10)
 
@@ -139,7 +164,7 @@ class GUI:
         dir_name.pack(anchor="w", padx=10)
 
         label_entry_2 = tk.StringVar()
-        label_entry_2.set("Öffnender Tag")
+        label_entry_2.set("Öffnender Tag (*Pflichtfeld)")
         label_dir_2 = tk.Label(window, textvariable=label_entry_2, font='Arial 10 bold')
         label_dir_2.pack(anchor="w", padx=10)
 
@@ -157,7 +182,7 @@ class GUI:
         dir_name_3.pack(anchor="w", padx=10)
 
         label_entry_4 = tk.StringVar()
-        label_entry_4.set("Soll als Tag in der neuen Datei angezeigt werden?")
+        label_entry_4.set("Soll der Tag in der neuen Datei als Tag angezeigt werden? (*Pflichtfeld)")
         label_dir_4 = tk.Label(window, textvariable=label_entry_4, font='Arial 10 bold')
         label_dir_4.pack(anchor="w", padx=10)
 
@@ -166,6 +191,7 @@ class GUI:
         tk.Radiobutton(window, text="Nein", padx=10, variable=v, value=False).pack(anchor="w")
 
         tmp_list = [entry_1, entry_2, entry_3, v]
+
         button_try = tk.Button(window, text="Hinzufügen",
                                command=lambda: cls.__save_to_tag_file__(tmp_list, tag_file, window), width="15").pack(
             anchor="e",
@@ -202,10 +228,19 @@ class GUI:
         :param window: window that is shown.
         """
 
-        res = AcrossReader.AcrossReader.__save_to_tag_file__(tag_list, tag_file)
-        window.destroy()
-        tk.messagebox.showinfo(res[0], res[1])
-        cls.__open_file__(tag_file)
+        across_validator = AcrossValidation.AcrossValidation()
+
+        try:
+            across_validator.check_empty_string(tag_list[0].get())
+            across_validator.check_empty_string(tag_list[1].get())
+
+            res = AcrossReader.AcrossReader.__save_to_tag_file__(tag_list, tag_file)
+            window.destroy()
+            tk.messagebox.showinfo(res[0], res[1])
+            cls.__open_file__(tag_file)
+
+        except ValueError as error:
+            tk.messagebox.showerror("Fehler", str(error))
 
     @classmethod
     def __set_center__(cls, root):
