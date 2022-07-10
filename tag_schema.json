@@ -1,0 +1,71 @@
+{
+  "definitions": {},
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "$id": "https://example.com/object1657369249.json",
+            "title": "Root",
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$id": "#root/data",
+                    "title": "Data",
+                    "type": "array",
+                    "default": [],
+                    "items":{
+                        "$id": "#root/data/items",
+                        "title": "Items",
+                        "type": "object",
+                        "required": [
+                            "name",
+                            "show_tag",
+                            "opening",
+                            "closing"
+                        ],
+                        "properties": {
+                            "name": {
+                                "$id": "#root/data/items/name",
+                                "title": "Name",
+                                "type": "string",
+                                "default": "",
+                                "examples": [
+                                    "Hervorhebung"
+                                ],
+                                "pattern": "^.*$"
+                            },
+                            "show_tag": {
+                                "$id": "#root/data/items/show_tag",
+                                "title": "Show_tag",
+                                "type": "boolean",
+                                "examples": [
+                                    true
+                                ],
+                                "default": true
+                            },
+                            "opening": {
+                                "$id": "#root/data/items/opening",
+                                "title": "Opening",
+                                "type": "string",
+                                "default": "",
+                                "examples": [
+                                    "<Hervorhebung>"
+                                ],
+                                "pattern": "^.*$"
+                            },
+                            "closing": {
+                                "$id": "#root/data/items/closing",
+                                "title": "Closing",
+                                "type": "string",
+                                "default": "",
+                                "examples": [
+                                    "</Hervorhebung>"
+                                ],
+                                "pattern": "^.*$"
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
