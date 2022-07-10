@@ -1,60 +1,63 @@
 import json
 import re
 import AcrossReader
-import AcrossValidation
 import tkinter as tk
+from abc import ABC
 from tkinter import filedialog, RIGHT, Y, END, LEFT, BOTH
 from tkinter.messagebox import showinfo
+from IGUI import IGUI
 
 
-class GUI:
+class GUI(IGUI, ABC):
 
-    @classmethod
-    def start_application(cls):
+    def start_application(self, across_reader):
         """
         Starts the application with the main window.
+
+        :param across_reader: instance of the AcrossReader class.
         """
 
         root = tk.Tk()
-        cls.__set_center__(root)
+        self.__set_center__(root)
 
         root.title("AcrossReader")
 
         label1 = tk.Label(root, text="Herzlich Willkommen", height=2, width=30, font=("Arial", 25)).pack(
             anchor="center", pady=10)
-        button_1 = tk.Button(root, text="Lesen einer htm-Datei", width="25", command=cls.__read_htm__).pack(
+
+        button_1 = tk.Button(root, text="Lesen einer htm-Datei", width="25", command=lambda: self.__read_htm__(across_reader)).pack(
             anchor="center", pady=5)
-        button_2 = tk.Button(root, text="Tag-Liste bearbeiten", width="25", command=lambda: cls.__ask_for_file__()).pack(
+
+        button_2 = tk.Button(root, text="Tag-Liste bearbeiten", width="25", command=lambda: self.__ask_for_file__(across_reader)).pack(
             anchor="center", pady=5)
-        button_3 = tk.Button(root, text="Neue Tag-Liste anlegen", width="25", command=cls.__create_new_tag_file__).pack(
+        button_3 = tk.Button(root, text="Neue Tag-Liste anlegen", width="25", command=lambda: self.__create_new_tag_file__(across_reader)).pack(
             anchor="center", pady=5)
         button_4 = tk.Button(root, text="Beenden", width="25", command=root.destroy).pack(anchor="center", pady=5)
 
         root.mainloop()
 
-    @classmethod
-    def __read_htm__(cls):
+    def __read_htm__(self, across_reader):
         """
         Reads a htm file that is chosen within the window that will open.
-        """
 
-        across_validator = AcrossValidation.AcrossValidation()
+        :param across_reader: instance of the AcrossReader class.
+        """
 
         tk.messagebox.showinfo("Datei wählen", "Wählen Sie bitte die Datei im htm-Format aus, welche Sie in eine "
                                                "docx-Datei übertragen möchten.")
         htm_file = filedialog.askopenfilename()
 
         try:
-            across_validator.validate_file_existence(htm_file)
+            across_reader.across_validator.validate_file_existence(htm_file)
             tk.messagebox.showinfo("Datei wählen", "Wählen Sie bitte eine Datei im json-Format aus, welche die text-"
                                                    "spezifischen Tags enthält. Möchten Sie ohne Tag-Ersetzung fortfahren, "
                                                    "wählen Sie bitte eine leere Tag-Datei. Diese können Sie über 'Neue Tag-Liste anlegen' "
                                                    "erstellen.")
             tag_file = filedialog.askopenfilename()
-            across_validator.validate_file_existence(tag_file)
+            across_reader.across_validator.validate_file_existence(tag_file)
 
             try:
-                AcrossReader.AcrossReader.read_htm_file(htm_file, tag_file)
+                across_reader.read_htm_file(htm_file, tag_file)
 
                 tk.messagebox.showinfo("Erfolgreich übertragen",
                                        "Die Datei wurde erfolgreich in eine docx-Datei übertragen. Die"
@@ -67,43 +70,42 @@ class GUI:
             tk.messagebox.showerror("Fehler", "Sie haben nicht alle notwendigen Dateien ausgewählt!")
             return
 
-    @classmethod
-    def __ask_for_file__(cls):
+    def __ask_for_file__(self, across_reader):
         """
         Asks for a json file that contains tags.
+
+        :param across_reader: instance of the AcrossReader class.
         """
 
-        across_validator = AcrossValidation.AcrossValidation()
-
         try:
-            tk.messagebox.showinfo("Datei wählen",
-                                   "Wählen Sie bitte die Datei aus, welche projektspezifische Tags enthält.")
+            tk.messagebox.showinfo("Datei wählen", "Wählen Sie bitte die Datei aus, welche projektspezifische Tags enthält.")
             tag_file = filedialog.askopenfilename()
 
             # Validation of the tag file
-            across_validator.validate_file_existence(tag_file)
-            across_validator.check_tag_file(tag_file)
+            across_reader.across_validator.validate_file_existence(tag_file)
+            across_reader.across_validator.check_tag_file(tag_file)
 
             with open(tag_file, "r", encoding="utf-8") as file:
                 all_tags = json.load(file)
-            if not across_validator.validate_json_schema(all_tags):
+            if not across_reader.across_validator.validate_json_schema(all_tags):
                 return False
 
-            cls.__open_file__(tag_file)
+            self.__open_file__(tag_file, across_reader)
 
         except (OSError, ValueError) as error:
             tk.messagebox.showerror("Fehler", str(error))
 
-    @classmethod
-    def __create_new_tag_file__(cls):
+    def __create_new_tag_file__(self, across_reader):
         """
         Creates an empty json file for storing tags. Replaces the file ending with .json automatically.
+
+        :param across_reader: instance of the AcrossReader class.
         """
 
         window = tk.Toplevel()
         window.grab_set()
 
-        cls.__set_center__(window)
+        self.__set_center__(window)
 
         tk.messagebox.showinfo("Speicherort wählen", "Bitte wählen Sie den Speicherort für die neue Datei und "
                                                      "vergeben Sie einen Namen.")
@@ -111,25 +113,27 @@ class GUI:
 
         if tag_file != '':
             tag_file = re.sub('\\..*\n?', '.json', tag_file)
-            AcrossReader.AcrossReader.__create_new_tag_file__(tag_file)
+            if '.' not in tag_file:
+                tag_file = tag_file + ".json"
+            across_reader.__create_new_tag_file__(tag_file)
             tk.messagebox.showinfo("Erfolgreich angelegt", "Die von Ihnen gewünschte Datei wurde erfolgreich angelegt.")
             window.destroy()
-            cls.__open_file__(tag_file)
+            self.__open_file__(tag_file, across_reader)
 
         else:
             window.destroy()
 
-    @classmethod
-    def __open_file__(cls, tag_file):
+    def __open_file__(self, tag_file, across_reader):
         """
         Opens the dialogue for adding and deleting tags in an existing list of tags.
 
         :param tag_file: json file that contains at least an empty dictionary.
+        :param across_reader: instance of the AcrossReader class.
         """
 
         window = tk.Toplevel()
         window.grab_set()
-        cls.__set_center__(window)
+        self.__set_center__(window)
 
         label_1 = tk.Label(window, text="Aktuelle Tags in der Datei", font=('Arial', 20)).pack(anchor="w", padx=(10, 0))
 
@@ -193,57 +197,65 @@ class GUI:
         tmp_list = [entry_1, entry_2, entry_3, v]
 
         button_try = tk.Button(window, text="Hinzufügen",
-                               command=lambda: cls.__save_to_tag_file__(tmp_list, tag_file, window), width="15").pack(
+                               command=lambda: self.__save_to_tag_file__(tmp_list, tag_file, window, across_reader), width="15").pack(
             anchor="e",
             padx=(0, 40))
 
         button_delete = tk.Button(window, text="Löschen",
-                                  command=lambda: cls.__delete_tag__(tag_file, tmp_list[0], window), width="15").pack(
+                                  command=lambda: self.__delete_tag__(tag_file, tmp_list[0], window, across_reader), width="15").pack(
             anchor="e", padx=(0, 40), pady=5)
         button_back = tk.Button(window, text="Zurück", command=window.destroy, width="15").pack(anchor="e",
                                                                                                 padx=(0, 40))
 
-    @classmethod
-    def __delete_tag__(cls, tag_file, tag_to_be_deleted, window):
+    def __delete_tag__(self, tag_file, tag_to_be_deleted, window, across_reader):
         """
         Deletes the given tag in the given json file if existing. Closes the window at the end.
 
         :param tag_file: json file that contains at least an empty dictionary.
         :param tag_to_be_deleted: tag that needs to be deleted.
         :param window: window that is shown.
+        :param across_reader: instance of the AcrossReader class.
         """
 
-        res = AcrossReader.AcrossReader.__delete_tag__(tag_file, tag_to_be_deleted)
+        res = across_reader.__delete_tag__(tag_file, tag_to_be_deleted)
         window.destroy()
-        tk.messagebox.showinfo(res[0], res[1])
-        cls.__open_file__(tag_file)
 
-    @classmethod
-    def __save_to_tag_file__(cls, tag_list, tag_file, window):
+        if res is True:
+            tk.messagebox.showinfo("Erfolgreich gelöscht", "Der von Ihnen gewählte Tag wurde erfolgreich aus der angegebenen Datei gelöscht.")
+        else:
+            tk.messagebox.showerror("Fehler", "Der von Ihnen gewählte Tag konnte nicht gelöscht werden, da ein solcher Tag nicht in der angegebenen Datei existiert.")
+        self.__open_file__(tag_file, across_reader)
+
+    def __save_to_tag_file__(self, tag_list, tag_file, window, across_reader):
         """
         Saves the new tag to the given json file containing the tags.
 
         :param tag_list: list containing the information of the new tag that is to be stored.
         :param tag_file: json file that contains at least an empty dictionary.
         :param window: window that is shown.
+        :param across_reader: instance of the AcrossReader class.
         """
 
-        across_validator = AcrossValidation.AcrossValidation()
-
         try:
-            across_validator.check_empty_string(tag_list[0].get())
-            across_validator.check_empty_string(tag_list[1].get())
+            across_reader.across_validator.check_empty_string(tag_list[0].get())
+            across_reader.across_validator.check_empty_string(tag_list[1].get())
 
-            res = AcrossReader.AcrossReader.__save_to_tag_file__(tag_list, tag_file)
+            res = across_reader.__save_to_tag_file__(tag_list, tag_file)
+
             window.destroy()
-            tk.messagebox.showinfo(res[0], res[1])
-            cls.__open_file__(tag_file)
+
+            if res is True:
+                tk.messagebox.showinfo("Erfolgreich gespeichert", "Der von Ihnen gewünschte Tag wurde erfolgreich hinzugefügt.")
+            else:
+                tk.messagebox.showerror("Fehler", "Der von Ihnen gewünschte Tag konnte nicht hinzugefügt werden, da "
+                                                  "er bereits in der ausgewählten Datei existiert.")
+            self.__open_file__(tag_file, across_reader)
 
         except ValueError as error:
             tk.messagebox.showerror("Fehler", str(error))
 
-    @classmethod
-    def __set_center__(cls, root):
+    @staticmethod
+    def __set_center__(root):
         # Thanks to Sandeep Prasad Kushwaha for this method (source: stackoverflow)
         root.resizable(False, False)  # This code helps to disable windows from resizing
 
