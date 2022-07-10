@@ -6,4 +6,4 @@ stored in the docx file.</p>
 <p>The purpose of this project is to transform translations made with the CAT tool Across into a docx file in a format-independent manner. Especially with XML files or HTML files, proofreading in this format is extremely confusing, which is why an extraction of the source text and translation should simplify this entire process. The attached example shows a translation of a text that is taken from a docx file.</p>
 [example AcrossReader.pdf](https://github.com/DoNe158/AcrossReader/files/9041828/example.AcrossReader.pdf)
 
-[AcrossReader_GUI.pdf](https://github.com/DoNe158/AcrossReader/files/9069656/AcrossReader_GUI.pdf)
+[AcrossReader_GUI.pdf](https://github.com/DoNe158/AcrossReader/files/9077759/AcrossReader_GUI.pdf)
