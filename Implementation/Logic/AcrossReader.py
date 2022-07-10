@@ -2,7 +2,7 @@ import os
 import re
 import json
 from Validation import AcrossValidation
-from Implementation import AcrossEntry
+from Implementation.Logic import AcrossEntry
 
 from docx import Document
 from docx.shared import Cm

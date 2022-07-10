@@ -1,6 +1,6 @@
 import json
 import re
-from Implementation import AcrossReader
+from Implementation.Logic import AcrossReader
 import tkinter as tk
 from abc import ABC
 from tkinter import filedialog, RIGHT, Y, END, LEFT, BOTH
