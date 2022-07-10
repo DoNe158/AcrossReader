@@ -1,13 +1,13 @@
 import os
 import re
 import json
-import AcrossValidation
-import AcrossEntry
+from Validation import AcrossValidation
+from Implementation import AcrossEntry
 
 from docx import Document
 from docx.shared import Cm
 from docx.shared import Pt
-from IAcrossReader import IAcrossReader
+from Abstract.IAcrossReader import IAcrossReader
 
 
 class AcrossReader(IAcrossReader):

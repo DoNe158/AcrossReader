@@ -1,11 +1,11 @@
 import json
 import re
-import AcrossReader
+from Implementation import AcrossReader
 import tkinter as tk
 from abc import ABC
 from tkinter import filedialog, RIGHT, Y, END, LEFT, BOTH
 from tkinter.messagebox import showinfo
-from IGUI import IGUI
+from Abstract.IGUI import IGUI
 
 
 class GUI(IGUI, ABC):

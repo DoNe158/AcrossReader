@@ -27,7 +27,7 @@ class AcrossValidation(BaseException):
     @staticmethod
     def validate_json_schema(tag_file):
 
-        with open("tag_schema.json", "r", encoding="utf-8") as file:
+        with open("Validation/tag_schema.json", "r", encoding="utf-8") as file:
             schema = json.load(file)
 
         try:

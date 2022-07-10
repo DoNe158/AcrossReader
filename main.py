@@ -1,6 +1,4 @@
-import GUI
-import AcrossReader
-
+from Implementation import AcrossReader, GUI
 
 if __name__ == '__main__':
 
