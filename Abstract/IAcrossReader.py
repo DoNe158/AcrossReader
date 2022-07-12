@@ -21,7 +21,7 @@ class IAcrossReader(ABC):
         pass
 
     @abc.abstractmethod
-    def __save_to_tag_file__(self, tag_list, tag_file) -> bool:
+    def save_to_tag_file(self, tag_list, tag_file) -> bool:
         """
         Saves a new tag entry to an existing tag file.
 
@@ -32,7 +32,7 @@ class IAcrossReader(ABC):
         pass
 
     @staticmethod
-    def __create_new_tag_file__(tag_file_path):
+    def create_new_tag_file(tag_file_path):
         """
         Creates an empty json file with the basic structure (dictionary with data: []).
 
@@ -41,7 +41,7 @@ class IAcrossReader(ABC):
         pass
 
     @staticmethod
-    def __show_tags__(tag_file) -> list:
+    def show_tags(tag_file) -> list:
         """
         Shows all tags with their information that are stored in the given json file that contains the tags.
 
@@ -51,7 +51,7 @@ class IAcrossReader(ABC):
         pass
 
     @abc.abstractmethod
-    def __delete_tag__(self, tag_file, tag_to_be_deleted) -> bool:
+    def delete_tag(self, tag_file, tag_to_be_deleted) -> bool:
         """
         Deletes the given tag in the given json tag file.
 
@@ -62,7 +62,7 @@ class IAcrossReader(ABC):
         pass
 
     @classmethod
-    def __write_file_to_docx__(cls, translation_list_with_AcrossReader, document_name):
+    def write_file_to_docx(cls, translation_list_with_AcrossReader, document_name):
         """
         Takes a list with AcrossEntry stored in a AcrossReader instance and stores all entries in a docx document
         with the given document name.

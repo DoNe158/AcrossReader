@@ -31,12 +31,12 @@ class AcrossReader(IAcrossReader):
             AcrossReader.across_validator.check_across_htm_file(htm_file)
             AcrossReader.across_validator.check_tag_file(tag_file)
 
-            all_tags = self.__transform_json_to_dict__(tag_file)
+            all_tags = self.__transform_json_to_dict(tag_file)
 
             if not AcrossReader.across_validator.validate_json_schema(all_tags):
                 return False
 
-            file_to_store = self.__generate_destination_file__(htm_file)
+            file_to_store = self.__generate_destination_file(htm_file)
 
             with open(htm_file, "r", encoding="utf-8") as file_to_be_read:
                 lines = file_to_be_read.readlines()
@@ -50,16 +50,16 @@ class AcrossReader(IAcrossReader):
 
                     if counter == 2:
                         source = tmp[:-1]
-                        source = self.__remove_nbsp_tag__(source)
+                        source = self.__remove_nbsp_tag(source)
                         source = self.__remove_tags_inline(source, all_tags)
-                        source = self.__replace_special_characters__(source)
+                        source = self.__replace_special_characters(source)
                         counter += 1
 
                     elif counter == 3:
                         translation = tmp
-                        translation = self.__remove_nbsp_tag__(translation)
+                        translation = self.__remove_nbsp_tag(translation)
                         translation = self.__remove_tags_inline(translation, all_tags)
-                        translation = self.__replace_special_characters__(translation)
+                        translation = self.__replace_special_characters(translation)
                         counter = 1
                         translation_entry = AcrossEntry.AcrossEntry(segment_id, source, translation)
                         translations.append(translation_entry)
@@ -69,16 +69,16 @@ class AcrossReader(IAcrossReader):
                     segment_id = re.sub("</SPAN></PRE></TD>", "", segment_id)[:-1]
                     counter += 1
 
-            all_translations_to_store = self.__remove_duplicates__(self, translations)
+            all_translations_to_store = self.__remove_duplicates(self, translations)
 
-            self.__write_file_to_docx__(all_translations_to_store, file_to_store)
+            self.write_file_to_docx(all_translations_to_store, file_to_store)
             return True
 
         except (OSError, FileExistsError, ValueError) as error:
             raise ValueError(error)
 
     @staticmethod
-    def __remove_duplicates__(self, translation_list):
+    def __remove_duplicates(self, translation_list):
         """
         Removes entries that occur multiple times in a given list containing translation entries (consist segment id,
         source text, and translation.
@@ -125,14 +125,14 @@ class AcrossReader(IAcrossReader):
         line_cleaned = re.sub("</TR>", "", line_cleaned)
 
         for tag in tag_dict.get('data'):
-            line_cleaned = self.__replace_tag__(line_cleaned, tag.get('name'), tag.get('show_tag'), tag.get('opening'), tag.get('closing'))
+            line_cleaned = self.__replace_tag(line_cleaned, tag.get('name'), tag.get('show_tag'), tag.get('opening'), tag.get('closing'))
 
         line_cleaned = re.sub('<IMG.*?alt="<Pfad>.*?</Pfad>.*?">', "<Pfad />", line_cleaned)
         line_cleaned = re.sub('<IMG.*?png">', "", line_cleaned)
 
         return line_cleaned
 
-    def __save_to_tag_file__(self, tag_list, tag_file):
+    def save_to_tag_file(self, tag_list, tag_file):
         """
         Stores a new tag in the tag file in case the tag is still not existing in the file.
 
@@ -141,7 +141,7 @@ class AcrossReader(IAcrossReader):
         :return: Success / Failure messages.
         """
 
-        data = self.__transform_json_to_dict__(tag_file)
+        data = self.__transform_json_to_dict(tag_file)
 
         for entry in data.__getitem__('data'):
             if entry.get('name') == tag_list[0].get():
@@ -161,7 +161,7 @@ class AcrossReader(IAcrossReader):
         return True
 
     @staticmethod
-    def __create_new_tag_file__(tag_file_path):
+    def create_new_tag_file(tag_file_path):
         """
         Creates a new json file containing an empty dictionary.
 
@@ -174,7 +174,7 @@ class AcrossReader(IAcrossReader):
             json.dump(new_dict, file)
 
     @staticmethod
-    def __show_tags__(tag_file):
+    def show_tags(tag_file):
         """
         Returns a list of all tags given in the tag file.
 
@@ -183,7 +183,7 @@ class AcrossReader(IAcrossReader):
         """
 
         tag_list = list()
-        tag_dict = AcrossReader.__transform_json_to_dict__(tag_file)
+        tag_dict = AcrossReader.__transform_json_to_dict(tag_file)
 
         for tag in tag_dict.get('data'):
             if tag.get('closing') == "":
@@ -195,7 +195,7 @@ class AcrossReader(IAcrossReader):
         return tag_list
 
     @staticmethod
-    def __replace_tag__(line, tag_name, show_tag, opening, closing):
+    def __replace_tag(line, tag_name, show_tag, opening, closing):
         """
         Replaces all the tags with the given opening and closing tag as it is used in the source text.
         The tags that should be considered is stored in a json file that supports UTF 8 encoding. If the show_tag is
@@ -240,7 +240,7 @@ class AcrossReader(IAcrossReader):
         return line
 
     @classmethod
-    def __replace_special_characters__(cls, translation_string):
+    def __replace_special_characters(cls, translation_string):
         """
         Replaces "&lt;" and "&gt;" with their encoded symbols.
 
@@ -253,7 +253,7 @@ class AcrossReader(IAcrossReader):
         return tmp
 
     @classmethod
-    def __remove_nbsp_tag__(cls, translation_string):
+    def __remove_nbsp_tag(cls, translation_string):
         """
         Removes whitespace tags within the translation.
 
@@ -270,7 +270,7 @@ class AcrossReader(IAcrossReader):
         else:
             return translation_string
 
-    def __delete_tag__(self, tag_file, tag_to_be_deleted):
+    def delete_tag(self, tag_file, tag_to_be_deleted):
         """
         Deletes an existing tag in the given file.
 
@@ -281,7 +281,7 @@ class AcrossReader(IAcrossReader):
 
         try:
             AcrossReader.across_validator.check_empty_string(tag_to_be_deleted.get())
-            data = self.__transform_json_to_dict__(tag_file)
+            data = self.__transform_json_to_dict(tag_file)
 
             new_dict = {'data': []}
             exists = False
@@ -304,7 +304,7 @@ class AcrossReader(IAcrossReader):
             return False
 
     @classmethod
-    def __generate_destination_file__(cls, path):
+    def __generate_destination_file(cls, path):
         """
         Creates the path of the file where the processed file is to be stored. The suffix '_translated' will be added
         to the destination file automatically.
@@ -322,7 +322,7 @@ class AcrossReader(IAcrossReader):
         return path_translation
 
     @staticmethod
-    def __transform_json_to_dict__(json_file):
+    def __transform_json_to_dict(json_file):
         """
         Reads a json file and returns the content in a dictionary.
 
@@ -335,7 +335,7 @@ class AcrossReader(IAcrossReader):
         return data
 
     @staticmethod
-    def __set_col_widths__(table):
+    def __set_col_widths(table):
         """
         Helper method that sets the column width of a table of a docx file.
         :param table: table where the column width needs to be set.
@@ -347,7 +347,7 @@ class AcrossReader(IAcrossReader):
                 row.cells[idx].width = width
 
     @classmethod
-    def __write_file_to_docx__(cls, translation_list_with_AcrossReader, document_name):
+    def write_file_to_docx(cls, translation_list_with_AcrossReader, document_name):
         """
         Takes a list containing elements of AcrossEntry that contains of a segment id, a source text and a translation.
         Writes each entry of the given list in a table and saves the file as a docx document.
@@ -393,5 +393,5 @@ class AcrossReader(IAcrossReader):
             row_cells[1].text = source
             row_cells[2].text = translation
 
-        AcrossReader.__set_col_widths__(table)
+        AcrossReader.__set_col_widths(table)
         document.save(document_name)
