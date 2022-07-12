@@ -12,10 +12,9 @@ from Abstract.IAcrossReader import IAcrossReader
 
 class AcrossReader(IAcrossReader):
 
-    across_validator = AcrossValidation.AcrossValidation()
-
     def __init__(self):
         super().__init__()
+        self.across_validator = AcrossValidation.AcrossValidation()
 
     def read_htm_file(self, htm_file, tag_file):
         """
@@ -25,15 +24,15 @@ class AcrossReader(IAcrossReader):
 
         try:
             # Validation
-            AcrossReader.across_validator.validate_file_existence(htm_file)
-            AcrossReader.across_validator.validate_file_existence(tag_file)
-            AcrossReader.across_validator.check_file_ending(htm_file)
-            AcrossReader.across_validator.check_across_htm_file(htm_file)
-            AcrossReader.across_validator.check_tag_file(tag_file)
+            self.across_validator.validate_file_existence(htm_file)
+            self.across_validator.validate_file_existence(tag_file)
+            self.across_validator.check_file_ending(htm_file)
+            self.across_validator.check_across_htm_file(htm_file)
+            self.across_validator.check_tag_file(tag_file)
 
             all_tags = self.__transform_json_to_dict(tag_file)
 
-            if not AcrossReader.across_validator.validate_json_schema(all_tags):
+            if not self.across_validator.validate_json_schema(all_tags):
                 return False
 
             file_to_store = self.__generate_destination_file(htm_file)
@@ -280,7 +279,7 @@ class AcrossReader(IAcrossReader):
         """
 
         try:
-            AcrossReader.across_validator.check_empty_string(tag_to_be_deleted.get())
+            self.across_validator.check_empty_string(tag_to_be_deleted.get())
             data = self.__transform_json_to_dict(tag_file)
 
             new_dict = {'data': []}
