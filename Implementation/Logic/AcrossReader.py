@@ -292,18 +292,18 @@ class AcrossReader(IAcrossReader):
             self.across_validator.check_empty_string(tag_to_be_deleted.get())
             tags_dictionary = self.__transform_json_to_dict(tag_file)
 
-            tags_dictionary = {'data': []}
+            new_tags_dictionary = {'data': []}
             entry_exists = False
 
             for entry in tags_dictionary.__getitem__('data'):
                 if entry.get('name') != tag_to_be_deleted.get():
-                    tags_dictionary.__getitem__('data').append(entry)
+                    new_tags_dictionary.__getitem__('data').append(entry)
                 else:
                     entry_exists = True
 
             if entry_exists:
                 with open(tag_file, 'w', encoding='utf-8') as file:
-                    json.dump(tags_dictionary, file)
+                    json.dump(new_tags_dictionary, file)
                 return True
 
             else:
