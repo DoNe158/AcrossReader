@@ -30,9 +30,9 @@ class AcrossReader(IAcrossReader):
             self.across_validator.check_across_htm_file(htm_file)
             self.across_validator.check_tag_file(tag_file)
 
-            all_tags = self.__transform_json_to_dict(tag_file)
+            all_tags_from_tag_file = self.__transform_json_to_dict(tag_file)
 
-            if not self.across_validator.validate_json_schema(all_tags):
+            if not self.across_validator.validate_json_schema(all_tags_from_tag_file):
                 return False
 
             file_to_store = self.__generate_destination_file(htm_file)
@@ -43,38 +43,48 @@ class AcrossReader(IAcrossReader):
                 translations = list()
                 source = ''
 
-            for entry in lines:
-                if entry.startswith("<DIV id=contents"):
-                    tmp = entry
-
+            for line in lines:
+                if line.startswith("<DIV id=contents"):
                     if counter == 2:
-                        source = tmp[:-1]
-                        source = self.__remove_nbsp_tag(source)
-                        source = self.__remove_tags_inline(source, all_tags)
-                        source = self.__replace_special_characters(source)
+                        source = self.__process_line_source(line[:-1], all_tags_from_tag_file)
                         counter += 1
 
                     elif counter == 3:
-                        translation = tmp
-                        translation = self.__remove_nbsp_tag(translation)
-                        translation = self.__remove_tags_inline(translation, all_tags)
-                        translation = self.__replace_special_characters(translation)
+                        translation = self.__process_line_translation(line, all_tags_from_tag_file)
                         counter = 1
                         translation_entry = AcrossEntry.AcrossEntry(segment_id, source, translation)
                         translations.append(translation_entry)
 
-                if 'inactiveNumbering" width=' in entry and counter == 1:
-                    segment_id = re.sub('<TD.*?MARGIN: 2px 0px 0px"><SPAN class=atom>', "", entry)
-                    segment_id = re.sub("</SPAN></PRE></TD>", "", segment_id)[:-1]
+                if 'inactiveNumbering" width=' in line and counter == 1:
+                    segment_id = AcrossReader.__process_segment_id(line)
                     counter += 1
 
-            all_translations_to_store = self.__remove_duplicates(self, translations)
+            translations_without_duplicates = self.__remove_duplicates(self, translations)
 
-            self.write_file_to_docx(all_translations_to_store, file_to_store)
+            self.write_file_to_docx(translations_without_duplicates, file_to_store)
             return True
 
         except (OSError, FileExistsError, ValueError) as error:
             raise ValueError(error)
+
+    def __process_line_source(self, line, tags_dictionary):
+        source = line[:-1]
+        source = self.__remove_nbsp_tag(source)
+        source = self.__remove_tags_inline(source, tags_dictionary)
+        source = self.__replace_special_characters(source)
+        return source
+
+    def __process_line_translation(self, line, tags_dictionary):
+        translation = self.__remove_nbsp_tag(line)
+        translation = self.__remove_tags_inline(translation, tags_dictionary)
+        translation = self.__replace_special_characters(translation)
+        return translation
+
+    @staticmethod
+    def __process_segment_id(line):
+        segment_id = re.sub('<TD.*?MARGIN: 2px 0px 0px"><SPAN class=atom>', "", line)
+        segment_id = re.sub("</SPAN></PRE></TD>", "", segment_id)[:-1]
+        return segment_id
 
     @staticmethod
     def __remove_duplicates(self, translation_list):
@@ -90,13 +100,13 @@ class AcrossReader(IAcrossReader):
         list_without_duplicates = list()
 
         for entry in translation_list:
-            exists = False
+            entry_exists = False
             for entry_without_duplicates in list_without_duplicates:
                 if entry_without_duplicates.source == entry.source:
-                    exists = True
+                    entry_exists = True
                     break
 
-            if exists is False:
+            if entry_exists is False:
                 list_without_duplicates.append(entry)
 
         return list_without_duplicates
@@ -140,9 +150,9 @@ class AcrossReader(IAcrossReader):
         :return: Success / Failure messages.
         """
 
-        data = self.__transform_json_to_dict(tag_file)
+        tags_dictionary = self.__transform_json_to_dict(tag_file)
 
-        for entry in data.__getitem__('data'):
+        for entry in tags_dictionary.__getitem__('data'):
             if entry.get('name') == tag_list[0].get():
                 return False
 
@@ -152,10 +162,10 @@ class AcrossReader(IAcrossReader):
                     "closing": tag_list[2].get()
                     }
 
-        data.__getitem__('data').append(new_tag)
+        tags_dictionary.__getitem__('data').append(new_tag)
 
         with open(tag_file, 'w', encoding='utf-8') as file:
-            json.dump(data, file)
+            json.dump(tags_dictionary, file)
 
         return True
 
@@ -167,10 +177,10 @@ class AcrossReader(IAcrossReader):
         :param tag_file_path: path of the tag file that is to be stored.
         """
 
-        new_dict = {'data': []}
+        new_tags_dictionary = {'data': []}
 
         with open(tag_file_path, "w", encoding="utf-8") as file:
-            json.dump(new_dict, file)
+            json.dump(new_tags_dictionary, file)
 
     @staticmethod
     def show_tags(tag_file):
@@ -182,9 +192,9 @@ class AcrossReader(IAcrossReader):
         """
 
         tag_list = list()
-        tag_dict = AcrossReader.__transform_json_to_dict(tag_file)
+        tags_dictionary = AcrossReader.__transform_json_to_dict(tag_file)
 
-        for tag in tag_dict.get('data'):
+        for tag in tags_dictionary.get('data'):
             if tag.get('closing') == "":
                 element_to_insert = f"{tag.get('name')}: {tag.get('show_tag')}, {tag.get('opening')}, --"
             else:
@@ -213,26 +223,26 @@ class AcrossReader(IAcrossReader):
         counter_closing = line.count(closing)
         if counter == counter_closing:
             for occurrence in range(0, counter):
-                if show_tag is True:
+                if show_tag:
                     line = re.sub(f'<IMG.*?alt="{opening}".*?">', f"<{tag_name}>", line, 1)
                 else:
                     line = re.sub(f'<IMG.*?alt="{opening}".*?">', '', line, 1)
 
                 if "" != closing:
-                    if show_tag is True:
+                    if show_tag:
                         line = re.sub(f'<IMG.*?alt="{closing}".*?">', f"</{tag_name}>", line, 1)
                     else:
                         line = re.sub(f'<IMG.*?alt="{closing}".*?">', '', line, 1)
         else:
             for occurrence in range(0, counter):
-                if show_tag is True:
+                if show_tag:
                     line = re.sub(f'<IMG.*?alt="{opening}".*?">', f"<{tag_name}>", line, 1)
                 else:
                     line = re.sub(f'<IMG.*?alt="{opening}".*?">', '', line, 1)
 
             for occurrence in range(0, counter_closing):
                 if "" != closing:
-                    if show_tag is True:
+                    if show_tag:
                         line = re.sub(f'<IMG.*?alt="{closing}".*?">', f"</{tag_name}>", line, 1)
                     else:
                         line = re.sub(f'<IMG.*?alt="{closing}".*?">', '', line, 1)
@@ -247,9 +257,9 @@ class AcrossReader(IAcrossReader):
         :return: string that replaced "&lt;" and "&gt;" with "<" and ">".
         """
 
-        tmp = re.sub("&lt;", "<", translation_string)
-        tmp = re.sub("&gt;", ">", tmp)
-        return tmp
+        translation_string_cleaned = re.sub("&lt;", "<", translation_string)
+        translation_string_cleaned = re.sub("&gt;", ">", translation_string_cleaned)
+        return translation_string_cleaned
 
     @classmethod
     def __remove_nbsp_tag(cls, translation_string):
@@ -261,11 +271,11 @@ class AcrossReader(IAcrossReader):
         """
 
         if 'class=field alt=&amp;nbsp; src=' in translation_string:
-            tmp = re.sub('</SPAN>.*?<SPAN class=atom>', ' ', translation_string)
-            return tmp
+            translation_string_cleaned = re.sub('</SPAN>.*?<SPAN class=atom>', ' ', translation_string)
+            return translation_string_cleaned
         elif '&nbsp;' in translation_string:
-            tmp = re.sub('&nbsp;', '', translation_string)
-            return tmp
+            translation_string_cleaned = re.sub('&nbsp;', '', translation_string)
+            return translation_string_cleaned
         else:
             return translation_string
 
@@ -280,20 +290,20 @@ class AcrossReader(IAcrossReader):
 
         try:
             self.across_validator.check_empty_string(tag_to_be_deleted.get())
-            data = self.__transform_json_to_dict(tag_file)
+            tags_dictionary = self.__transform_json_to_dict(tag_file)
 
-            new_dict = {'data': []}
-            exists = False
+            tags_dictionary = {'data': []}
+            entry_exists = False
 
-            for entry in data.__getitem__('data'):
+            for entry in tags_dictionary.__getitem__('data'):
                 if entry.get('name') != tag_to_be_deleted.get():
-                    new_dict.__getitem__('data').append(entry)
+                    tags_dictionary.__getitem__('data').append(entry)
                 else:
-                    exists = True
+                    entry_exists = True
 
-            if exists is True:
+            if entry_exists:
                 with open(tag_file, 'w', encoding='utf-8') as file:
-                    json.dump(new_dict, file)
+                    json.dump(tags_dictionary, file)
                 return True
 
             else:
@@ -330,8 +340,8 @@ class AcrossReader(IAcrossReader):
         """
 
         with open(json_file, "r", encoding="utf-8") as file:
-            data = json.load(file)
-        return data
+            tags_dictionary = json.load(file)
+        return tags_dictionary
 
     @staticmethod
     def __set_col_widths(table):

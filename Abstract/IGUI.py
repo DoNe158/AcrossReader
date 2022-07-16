@@ -19,7 +19,7 @@ class IGUI(ABC):
         pass
 
     @abc.abstractmethod
-    def read_htm(self, across_reader):
+    def read_htm_file(self, across_reader):
         """
         Opens dialog for reading the htm file and the json tag file.
 
@@ -37,7 +37,7 @@ class IGUI(ABC):
         pass
 
     @abc.abstractmethod
-    def open_file(self, tag_file, across_reader):
+    def edit_tag_file(self, tag_file, across_reader):
         """
         Opens the dialog for adding and deleting tags in the given tag file.
 

@@ -2,7 +2,6 @@ import json
 import re
 from Implementation.Logic import AcrossReader
 import tkinter as tk
-from abc import ABC
 from tkinter import filedialog, RIGHT, Y, END, LEFT, BOTH
 from tkinter.messagebox import showinfo
 from Abstract.IGUI import IGUI
@@ -22,21 +21,21 @@ class GUI(IGUI):
 
         root.title("AcrossReader")
 
-        label1 = tk.Label(root, text="Herzlich Willkommen", height=2, width=30, font=("Arial", 25)).pack(
+        label_welcome = tk.Label(root, text="Herzlich Willkommen", height=2, width=30, font=("Arial", 25)).pack(
             anchor="center", pady=10)
 
-        button_1 = tk.Button(root, text="Lesen einer htm-Datei", width="25", command=lambda: self.read_htm(across_reader)).pack(
+        button_read_htm_file = tk.Button(root, text="Lesen einer htm-Datei", width="25", command=lambda: self.read_htm_file(across_reader)).pack(
             anchor="center", pady=5)
 
-        button_2 = tk.Button(root, text="Tag-Liste bearbeiten", width="25", command=lambda: self.ask_for_file(across_reader)).pack(
+        button_edit_tag_file = tk.Button(root, text="Tag-Datei bearbeiten", width="25", command=lambda: self.ask_for_file(across_reader)).pack(
             anchor="center", pady=5)
-        button_3 = tk.Button(root, text="Neue Tag-Liste anlegen", width="25", command=lambda: self.create_new_tag_file(across_reader)).pack(
+        button_create_new_tag_file = tk.Button(root, text="Neue Tag-Liste anlegen", width="25", command=lambda: self.create_new_tag_file(across_reader)).pack(
             anchor="center", pady=5)
-        button_4 = tk.Button(root, text="Beenden", width="25", command=root.destroy).pack(anchor="center", pady=5)
+        button_exit = tk.Button(root, text="Beenden", width="25", command=root.destroy).pack(anchor="center", pady=5)
 
         root.mainloop()
 
-    def read_htm(self, across_reader):
+    def read_htm_file(self, across_reader):
         """
         Reads a htm file that is chosen within the window that will open.
 
@@ -90,7 +89,7 @@ class GUI(IGUI):
             if not across_reader.across_validator.validate_json_schema(all_tags):
                 return False
 
-            self.open_file(tag_file, across_reader)
+            self.edit_tag_file(tag_file, across_reader)
 
         except (OSError, ValueError) as error:
             tk.messagebox.showerror("Fehler", str(error))
@@ -118,12 +117,12 @@ class GUI(IGUI):
             across_reader.create_new_tag_file(tag_file)
             tk.messagebox.showinfo("Erfolgreich angelegt", "Die von Ihnen gewünschte Datei wurde erfolgreich angelegt.")
             window.destroy()
-            self.open_file(tag_file, across_reader)
+            self.edit_tag_file(tag_file, across_reader)
 
         else:
             window.destroy()
 
-    def open_file(self, tag_file, across_reader):
+    def edit_tag_file(self, tag_file, across_reader):
         """
         Opens the dialogue for adding and deleting tags in an existing list of tags.
 
@@ -135,7 +134,7 @@ class GUI(IGUI):
         window.grab_set()
         self.__set_center(window)
 
-        label_1 = tk.Label(window, text="Aktuelle Tags in der Datei", font=('Arial', 20)).pack(anchor="w", padx=(10, 0))
+        label_tags_in_file = tk.Label(window, text="Aktuelle Tags in der Datei", font=('Arial', 20)).pack(anchor="w", padx=(10, 0))
 
         # frame that contains the scrollbar
         frame = tk.Frame(window)
@@ -144,67 +143,67 @@ class GUI(IGUI):
         tag_list = AcrossReader.AcrossReader.show_tags(tag_file)
         tag_list_gui = tk.Listbox(frame, yscrollcommand=scrollbar.set, width=75, height=5)
 
-        for entry in tag_list:
-            tag_list_gui.insert(END, entry)
+        for tag in tag_list:
+            tag_list_gui.insert(END, tag)
 
         tag_list_gui.pack(side=LEFT, fill=BOTH, anchor="w")
         scrollbar.config(command=tag_list_gui.yview)
         frame.pack()
 
         # single labels and buttons
-        label3 = tk.Label(window, text="Füllen Sie die folgenden Informationen aus.",
+        label_user_input = tk.Label(window, text="Füllen Sie die folgenden Informationen aus.",
                           padx=10, pady=10, font=('Arial', 14)).pack(anchor="w")
-        l1 = tk.Label(window, text=(
+        label_additional_info_for_deleting_tags = tk.Label(window, text=(
             "*Wenn Sie einen Tag löschen möchten, geben Sie unter 'Name des Tags' den Namen des Tags ein "
             "und bestätigen Sie mit 'Löschen'."), wraplength=450, justify="left").pack(anchor="w", pady=5, padx=(5, 40))
 
-        label_entry_1 = tk.StringVar()
-        label_entry_1.set("Name des Tags (*Pflichtfeld)")
-        label_dir = tk.Label(window, textvariable=label_entry_1, font='Arial 10 bold')
-        label_dir.pack(anchor="w", padx=10)
+        label_tag_name = tk.StringVar()
+        label_tag_name.set("Name des Tags (*Pflichtfeld)")
+        label_tag_name_dir = tk.Label(window, textvariable=label_tag_name, font='Arial 10 bold')
+        label_tag_name_dir.pack(anchor="w", padx=10)
 
-        entry_1 = tk.StringVar(None)
-        dir_name = tk.Entry(window, textvariable=entry_1, width=50)
-        dir_name.pack(anchor="w", padx=10)
+        label_tag_name_input = tk.StringVar(None)
+        label_tag_name_input_dir = tk.Entry(window, textvariable=label_tag_name_input, width=50)
+        label_tag_name_input_dir.pack(anchor="w", padx=10)
 
-        label_entry_2 = tk.StringVar()
-        label_entry_2.set("Öffnender Tag (*Pflichtfeld)")
-        label_dir_2 = tk.Label(window, textvariable=label_entry_2, font='Arial 10 bold')
-        label_dir_2.pack(anchor="w", padx=10)
+        label_opening_tag = tk.StringVar()
+        label_opening_tag.set("Öffnender Tag (*Pflichtfeld)")
+        label_opening_tag_dir = tk.Label(window, textvariable=label_opening_tag, font='Arial 10 bold')
+        label_opening_tag_dir.pack(anchor="w", padx=10)
 
-        entry_2 = tk.StringVar(None)
-        dir_name_2 = tk.Entry(window, textvariable=entry_2, width=50)
-        dir_name_2.pack(anchor="w", padx=10)
+        label_opening_tag_input = tk.StringVar(None)
+        label_opening_tag_input_dir = tk.Entry(window, textvariable=label_opening_tag_input, width=50)
+        label_opening_tag_input_dir.pack(anchor="w", padx=10)
 
-        label_entry_3 = tk.StringVar()
-        label_entry_3.set("Schließender Tag (leer, falls nicht vorhanden)")
-        label_dir_3 = tk.Label(window, textvariable=label_entry_3, font='Arial 10 bold')
-        label_dir_3.pack(anchor="w", padx=10)
+        label_closing_tag = tk.StringVar()
+        label_closing_tag.set("Schließender Tag (leer, falls nicht vorhanden)")
+        label_closing_tag_dir = tk.Label(window, textvariable=label_closing_tag, font='Arial 10 bold')
+        label_closing_tag_dir.pack(anchor="w", padx=10)
 
-        entry_3 = tk.StringVar(None)
-        dir_name_3 = tk.Entry(window, textvariable=entry_3, width=50)
-        dir_name_3.pack(anchor="w", padx=10)
+        label_closing_tag_input = tk.StringVar(None)
+        label_closing_tag_input_dir = tk.Entry(window, textvariable=label_closing_tag_input, width=50)
+        label_closing_tag_input_dir.pack(anchor="w", padx=10)
 
-        label_entry_4 = tk.StringVar()
-        label_entry_4.set("Soll der Tag in der neuen Datei als Tag angezeigt werden? (*Pflichtfeld)")
-        label_dir_4 = tk.Label(window, textvariable=label_entry_4, font='Arial 10 bold')
-        label_dir_4.pack(anchor="w", padx=10)
+        label_show_tag = tk.StringVar()
+        label_show_tag.set("Soll der Tag in der neuen Datei als Tag angezeigt werden? (*Pflichtfeld)")
+        label_show_tag_dir = tk.Label(window, textvariable=label_show_tag, font='Arial 10 bold')
+        label_show_tag_dir.pack(anchor="w", padx=10)
 
-        v = tk.BooleanVar(value=True)
-        tk.Radiobutton(window, text="Ja", padx=10, variable=v, value=True).pack(anchor="w")
-        tk.Radiobutton(window, text="Nein", padx=10, variable=v, value=False).pack(anchor="w")
+        label_show_tag_input = tk.BooleanVar(value=True)
+        tk.Radiobutton(window, text="Ja", padx=10, variable=label_show_tag_input, value=True).pack(anchor="w")
+        tk.Radiobutton(window, text="Nein", padx=10, variable=label_show_tag_input, value=False).pack(anchor="w")
 
-        tmp_list = [entry_1, entry_2, entry_3, v]
+        user_input_list = [label_tag_name_input, label_opening_tag_input, label_closing_tag_input, label_show_tag_input]
 
-        button_try = tk.Button(window, text="Hinzufügen",
-                               command=lambda: self.save_to_tag_file(tmp_list, tag_file, window, across_reader), width="15").pack(
+        button_add_tag = tk.Button(window, text="Hinzufügen",
+                               command=lambda: self.save_to_tag_file(user_input_list, tag_file, window, across_reader), width="15").pack(
             anchor="e",
             padx=(0, 40))
 
-        button_delete = tk.Button(window, text="Löschen",
-                                  command=lambda: self.delete_tag(tag_file, tmp_list[0], window, across_reader), width="15").pack(
+        button_delete_tag = tk.Button(window, text="Löschen",
+                                  command=lambda: self.delete_tag(tag_file, user_input_list[0], window, across_reader), width="15").pack(
             anchor="e", padx=(0, 40), pady=5)
-        button_back = tk.Button(window, text="Zurück", command=window.destroy, width="15").pack(anchor="e",
+        button_go_back = tk.Button(window, text="Zurück", command=window.destroy, width="15").pack(anchor="e",
                                                                                                 padx=(0, 40))
 
     def delete_tag(self, tag_file, tag_to_be_deleted, window, across_reader):
@@ -217,14 +216,15 @@ class GUI(IGUI):
         :param across_reader: instance of the AcrossReader class.
         """
 
-        res = across_reader.delete_tag(tag_file, tag_to_be_deleted)
+        result = across_reader.delete_tag(tag_file, tag_to_be_deleted)
         window.destroy()
 
-        if res is True:
+        if result:
             tk.messagebox.showinfo("Erfolgreich gelöscht", "Der von Ihnen gewählte Tag wurde erfolgreich aus der angegebenen Datei gelöscht.")
         else:
-            tk.messagebox.showerror("Fehler", "Der von Ihnen gewählte Tag konnte nicht gelöscht werden, da ein solcher Tag nicht in der angegebenen Datei existiert.")
-        self.open_file(tag_file, across_reader)
+            tk.messagebox.showerror("Fehler", "Der von Ihnen gewählte Tag konnte nicht gelöscht werden, da ein solcher "
+                                              "Tag nicht in der angegebenen Datei existiert.")
+        self.edit_tag_file(tag_file, across_reader)
 
     def save_to_tag_file(self, tag_list, tag_file, window, across_reader):
         """
@@ -240,16 +240,16 @@ class GUI(IGUI):
             across_reader.across_validator.check_empty_string(tag_list[0].get())
             across_reader.across_validator.check_empty_string(tag_list[1].get())
 
-            res = across_reader.save_to_tag_file(tag_list, tag_file)
+            result = across_reader.save_to_tag_file(tag_list, tag_file)
 
             window.destroy()
 
-            if res is True:
+            if result:
                 tk.messagebox.showinfo("Erfolgreich gespeichert", "Der von Ihnen gewünschte Tag wurde erfolgreich hinzugefügt.")
             else:
                 tk.messagebox.showerror("Fehler", "Der von Ihnen gewünschte Tag konnte nicht hinzugefügt werden, da "
                                                   "er bereits in der ausgewählten Datei existiert.")
-            self.open_file(tag_file, across_reader)
+            self.edit_tag_file(tag_file, across_reader)
 
         except ValueError as error:
             tk.messagebox.showerror("Fehler", str(error))
