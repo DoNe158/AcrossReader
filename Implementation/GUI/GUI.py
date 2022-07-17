@@ -139,23 +139,23 @@ class GUI(IGUI):
         # frame that contains the scrollbar
         frame = tk.Frame(window)
         scrollbar = tk.Scrollbar(frame)
-        scrollbar.pack(side=RIGHT, fill=Y)
+        scrollbar.pack(side=RIGHT, fill=Y, padx=(0, 10))
         tag_list = AcrossReader.AcrossReader.show_tags(tag_file)
         tag_list_gui = tk.Listbox(frame, yscrollcommand=scrollbar.set, width=75, height=5)
 
         for tag in tag_list:
             tag_list_gui.insert(END, tag)
 
-        tag_list_gui.pack(side=LEFT, fill=BOTH, anchor="w")
+        tag_list_gui.pack(side=LEFT, fill=BOTH, anchor="w", padx=(10, 0))
         scrollbar.config(command=tag_list_gui.yview)
         frame.pack()
 
         # single labels and buttons
         label_user_input = tk.Label(window, text="Füllen Sie die folgenden Informationen aus.",
-                          padx=10, pady=10, font=('Arial', 14)).pack(anchor="w")
+                           font=('Arial', 14)).pack(anchor="w", padx=10, pady=10)
         label_additional_info_for_deleting_tags = tk.Label(window, text=(
             "*Wenn Sie einen Tag löschen möchten, geben Sie unter 'Name des Tags' den Namen des Tags ein "
-            "und bestätigen Sie mit 'Löschen'."), wraplength=450, justify="left").pack(anchor="w", pady=5, padx=(5, 40))
+            "und bestätigen Sie mit 'Löschen'."), wraplength=450, justify="left").pack(anchor="w", pady=5, padx=(10, 40))
 
         label_tag_name = tk.StringVar()
         label_tag_name.set("Name des Tags (*Pflichtfeld)")
@@ -190,8 +190,8 @@ class GUI(IGUI):
         label_show_tag_dir.pack(anchor="w", padx=10)
 
         label_show_tag_input = tk.BooleanVar(value=True)
-        tk.Radiobutton(window, text="Ja", padx=10, variable=label_show_tag_input, value=True).pack(anchor="w")
-        tk.Radiobutton(window, text="Nein", padx=10, variable=label_show_tag_input, value=False).pack(anchor="w")
+        tk.Radiobutton(window, text="Ja", padx=10, variable=label_show_tag_input, value=True).pack(anchor="w", padx=10)
+        tk.Radiobutton(window, text="Nein", padx=10, variable=label_show_tag_input, value=False).pack(anchor="w", padx=10)
 
         user_input_list = [label_tag_name_input, label_opening_tag_input, label_closing_tag_input, label_show_tag_input]
 
