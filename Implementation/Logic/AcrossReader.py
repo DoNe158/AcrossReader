@@ -68,7 +68,7 @@ class AcrossReader(IAcrossReader):
             raise ValueError(error)
 
     def __process_line_source(self, line, tags_dictionary):
-        source = line[:-1]
+        source = line
         source = self.__remove_nbsp_tag(source)
         source = self.__remove_tags_inline(source, tags_dictionary)
         source = self.__replace_special_characters(source)
