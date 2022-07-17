@@ -165,7 +165,7 @@ class AcrossReader(IAcrossReader):
         tags_dictionary.__getitem__('data').append(new_tag)
 
         with open(tag_file, 'w', encoding='utf-8') as file:
-            json.dump(tags_dictionary, file)
+            json.dump(tags_dictionary, file, indent=2)
 
         return True
 
@@ -180,7 +180,7 @@ class AcrossReader(IAcrossReader):
         new_tags_dictionary = {'data': []}
 
         with open(tag_file_path, "w", encoding="utf-8") as file:
-            json.dump(new_tags_dictionary, file)
+            json.dump(new_tags_dictionary, file, indent=2)
 
     @staticmethod
     def show_tags(tag_file):
@@ -303,7 +303,7 @@ class AcrossReader(IAcrossReader):
 
             if entry_exists:
                 with open(tag_file, 'w', encoding='utf-8') as file:
-                    json.dump(new_tags_dictionary, file)
+                    json.dump(new_tags_dictionary, file, indent=2)
                 return True
 
             else:
